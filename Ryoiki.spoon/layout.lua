@@ -87,9 +87,10 @@ end
 -- Apply a layout definition.
 -- layoutDef: { name, windows=[{app, screen, x, y, w, h, focus}] }
 function M.apply(layoutDef)
-    local claimedIds = {}
-    local focusWin   = nil
-    local windows    = layoutDef.windows or {}
+    local claimedIds  = {}
+    local focusWin    = nil
+    local windows     = layoutDef.windows or {}
+    local targetSpace = hs.spaces.focusedSpace()
 
     -- Count window slots that have an app (for pending completion tracking)
     local pending = 0
@@ -161,6 +162,7 @@ function M.apply(layoutDef)
             if win then
                 -- Fast path: window already exists
                 claimedIds[win:id()] = true
+                hs.spaces.moveWindowToSpace(win, targetSpace)
                 local screen = getScreen(def.screen or 0)
                 local sf = screen:frame()
                 applyWindowFrame(win, def, sf)
@@ -172,6 +174,7 @@ function M.apply(layoutDef)
                 waitForWindowAsync(def.app, claimedIds, 5, function(w)
                     if w then
                         claimedIds[w:id()] = true
+                        hs.spaces.moveWindowToSpace(w, targetSpace)
                         local screen = getScreen(def.screen or 0)
                         local sf = screen:frame()
                         applyWindowFrame(w, def, sf)
