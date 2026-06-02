@@ -10,6 +10,7 @@ local M = {}
 function M.new(getLayouts, applyFn, builtins)
     local self = {}
     local chooser = nil
+    local currentChoices = {}
 
     local function buildSubText(lay)
         local parts = {}
@@ -54,6 +55,7 @@ function M.new(getLayouts, applyFn, builtins)
     end
 
     local function bindNav()
+        unbindNav()
         local function moveDown()
             local row = chooser:selectedRow()
             chooser:selectedRow(row < choiceCount and row + 1 or 1)
@@ -73,15 +75,32 @@ function M.new(getLayouts, applyFn, builtins)
                 applyFn(choice.text)
             end
         end)
-        chooser:searchSubText(true)
         chooser:placeholderText("Select layout…  (^J ↓  ^K ↑)")
+        chooser:queryChangedCallback(function(query)
+            local filtered
+            if not query or query == "" then
+                filtered = currentChoices
+            else
+                local lq = query:lower()
+                filtered = {}
+                for _, c in ipairs(currentChoices) do
+                    if (c.text and c.text:lower():find(lq, 1, true)) or
+                       (c.subText and c.subText:lower():find(lq, 1, true)) then
+                        filtered[#filtered + 1] = c
+                    end
+                end
+            end
+            choiceCount = #filtered
+            chooser:choices(filtered)
+        end)
     end
 
     function self.show()
         if not chooser then onCreate() end
-        local choices = buildChoices()
-        choiceCount = #choices
-        chooser:choices(choices)
+        currentChoices = buildChoices()
+        choiceCount = #currentChoices
+        chooser:query("")
+        chooser:choices(currentChoices)
         chooser:show()
         bindNav()
     end
